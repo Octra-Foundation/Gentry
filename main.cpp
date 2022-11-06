@@ -16,10 +16,38 @@ typedef unsigned int   UI;
 
 using namespace std;
 
-template <class Template> void alloc(Template*& get_next_bit, int bit_count) {
-    get_next_bit = (Template*)calloc(bit_count, sizeof(Template));
-    if (!get_next_bit) {
+template <class Template> void alloc(Template*& next_block, int block_count) {
+    next_block = (Template*)calloc(block_count, sizeof(Template));
+    if (!next_block) {
         static_cast<void>(fprintf(stderr, "out of memory\n")), exit(1);
     }
 }
 
+std::ifstream::pos_type filesize(const char* f_input) {
+    std::ifstream in(f_input, std::ifstream::ate | std::ifstream::binary);
+    return in.tellg();
+}
+
+
+class State_Machine {
+protected:
+    const int state_number;
+    int previous_state;
+    UI* state_count;
+    static int general_table[256];
+
+public:
+    State_Machine(int block_count = 256);
+    int next_block(int state) {
+        assert(state >= 0 && state < state_number);
+        return state_count[previous_state = state] >> 16;
+    }
+
+    void update(int rm_vector, int limit = 255) {
+        int block_count = state_count[previous_state] & 255, next_block = state_count[previous_state] >> 14;
+        if (block_count < limit) {
+            ++state_count[previous_state];
+            state_count[previous_state] += ((rm_vector << 18) - next_block) * general_table[block_count] & 0xffffff00;
+        }
+    }
+};
