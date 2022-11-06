@@ -125,3 +125,25 @@ Determinant::Determinant() : previous_state(0), directed_graph(0x10000) {
         state[i] = 0x66;
 }
 
+typedef enum { 
+    ENCODE, 
+    DECODE 
+    } 
+Mode;
+
+class Encoder {
+private:
+    Determinant determinant;
+    const Mode mod;
+    FILE* soup;
+    UI vector_x, vector_y;
+    UI lambda;
+public:
+    Encoder(Mode io_mode, FILE* __str); // for ease of testing will be used with a data file
+    void encode(int rm_vector);
+    int decode();
+    void alignment();
+};
+
+
+
