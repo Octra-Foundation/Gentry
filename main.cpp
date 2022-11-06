@@ -13,7 +13,6 @@
 typedef unsigned char  UC;
 typedef unsigned short US;
 typedef unsigned int   UI;
-
 using namespace std;
 
 template <class Template> void alloc(Template*& next_block, int block_count) {
@@ -28,16 +27,16 @@ std::ifstream::pos_type filesize(const char* f_input) {
     return in.tellg();
 }
 
-
 class State_Machine {
 protected:
     const int state_number;
     int previous_state;
     UI* state_count;
     static int general_table[256];
-
+    
 public:
     State_Machine(int block_count = 256);
+    
     int next_block(int state) {
         assert(state >= 0 && state < state_number);
         return state_count[previous_state = state] >> 16;
@@ -51,3 +50,20 @@ public:
         }
     }
 };
+
+int State_Machine::general_table[256] = { 0 };
+
+State_Machine::State_Machine(int block_count) : state_number(block_count), previous_state(0) {
+    alloc(state_count, state_number);
+    
+    for (int i = 0; i < state_number; ++i) {
+        UI block_count = (i & 1) * 2 + (i & 2) + (i >> 2 & 1) + (i >> 3 & 1) + (i >> 4 & 1) + (i >> 5 & 1) + (i >> 6 & 1) + (i >> 7 & 1) + 3;
+        state_count[i] = block_count << 28 | 6;
+    }
+    
+    if (general_table[0] == 0) {
+        for (int i = 0; i < 256; ++i) {
+            general_table[i] = 32768 / (i + i + 3);
+        }
+    }
+}
