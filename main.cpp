@@ -157,4 +157,21 @@ vector_y(0xffffffff), lambda(0) {
     }
 }
 
-
+inline void Encoder::encode(int rm_vector) {
+    const UI next_block = determinant.next_block();
+    assert(next_block <= 0xffff);
+    assert(rm_vector == 0 || rm_vector == 1);
+    const UI __symmetric = vector_x + ((vector_y - vector_x) >> 16) * next_block + ((vector_y - vector_x & 0xffff) * next_block >> 16);
+    assert(__symmetric >= vector_x && __symmetric < vector_y);
+    if (rm_vector) {
+        vector_y = __symmetric;
+    }
+    else
+        vector_x = __symmetric + 1;
+        determinant.update(rm_vector);
+        while (((vector_x ^ vector_y) & 0xff000000) == 0) {
+            putc(vector_y >> 24, __data);
+            vector_x <<= 8;
+            vector_y = (vector_y << 8) + 255;
+    }
+}
