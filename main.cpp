@@ -135,7 +135,7 @@ class Encoder {
 private:
     Determinant determinant;
     const Mode mod;
-    FILE* soup;
+    FILE* __data;
     UI vector_x, vector_y;
     UI lambda;
 public:
@@ -143,7 +143,18 @@ public:
     void encode(int rm_vector);
     int decode();
     void alignment();
+
 };
 
+Encoder::Encoder(Mode io_mode, FILE* __str) : determinant(), mod(io_mode), __data(__str), vector_x(0),
+vector_y(0xffffffff), lambda(0) {
+    if (mod == DECODE) {
+        for (int i = 0; i < 4; ++i) {
+            int byte = getc(__data);
+            if (byte == EOF) byte = 0;
+            lambda = (lambda << 8) + (byte & 0xff);
+        }
+    }
+}
 
 
