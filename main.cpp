@@ -175,3 +175,27 @@ inline void Encoder::encode(int rm_vector) {
             vector_y = (vector_y << 8) + 255;
     }
 }
+
+inline int Encoder::decode() {
+    const UI next_block = determinant.next_block();
+    assert(next_block <= 0xffff);
+    const UI __symmetric = vector_x + ((vector_y - vector_x) >> 16) * next_block + ((vector_y - vector_x & 0xffff) * next_block >> 16);
+    assert(__symmetric >= vector_x && __symmetric < vector_y);
+    int rm_vector = 0;
+    if (lambda <= __symmetric) {
+        rm_vector = 1;
+        vector_y = __symmetric;
+    }
+    else
+        vector_x = __symmetric + 1;
+    determinant.update(rm_vector);
+
+    while (((vector_x ^ vector_y) & 0xff000000) == 0) {
+        vector_x <<= 8;
+        vector_y = (vector_y << 8) + 255;
+        int byte = getc(__data);
+        if (byte == EOF) byte = 0;
+        lambda = (lambda << 8) + byte;
+    }
+    return rm_vector;
+}
