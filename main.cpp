@@ -214,3 +214,20 @@ void Encoder::alignment() {
     }
 }
 
+int main(int argc, char** argv) {
+    /*
+    EDT next
+    */
+    int byte;
+    if (argv[1][0] == 'c') {
+        Encoder coder(ENCODE, out);
+        while ((byte = getc(in)) != EOF) {
+           coder.encode(1);
+            for (int i = 7; i >= 0; --i)
+                coder.encode((byte >> i) & 1);
+        }
+        coder.encode(0);
+        coder.alignment();
+    }
+    return 0;
+}
