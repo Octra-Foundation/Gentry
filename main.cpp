@@ -43,6 +43,9 @@ SOFTWARE.
 #include <stdexcept>
 #include <algorithm>
 
+
+#include "lambda.cpp" //pls use GMP (https://gmplib.org/)
+
 typedef unsigned char  UC;
 typedef unsigned short US;
 typedef unsigned int   UI;
