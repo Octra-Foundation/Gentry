@@ -199,3 +199,15 @@ inline int Encoder::decode() {
     }
     return rm_vector;
 }
+
+void Encoder::alignment() {
+    if (mod == ENCODE) {
+        while (((vector_x ^ vector_y) & 0xff000000) == 0) {
+            putc(vector_y >> 24, __data);
+            vector_x <<= 8;
+            vector_y = (vector_y << 8) + 255;
+        }
+        putc(vector_y >> 24, __data);
+    }
+}
+
