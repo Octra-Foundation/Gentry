@@ -223,7 +223,6 @@ void Encoder::alignment() {
 
 
 //////////////////////////// Random Generator ///////////////////////////////
-
 // 32bit p-random number generator
 
 class Random {
@@ -246,8 +245,38 @@ public:
     
 } random;
 
+///////////////////////////// ilog //////////////////////////////
 
-//////////////////////////// End ///////////////////////////////
+// ilog(x) = round(log2(x) * 16), 0 <= x < 64K
+class Ilog {
+  Array<UC> t;
+public:
+  int operator()(U16 x) const {
+      return t[x];
+  }
+  Ilog();
+} ilog;
+
+// Lookup-tab by num integration of 1/x
+Ilog::Ilog(): t(65536) {
+  UI x = 14155776;
+  for (int i = 2; i < 65536; ++i) {
+    x += 774541002 / (i * 2 - 1);  // numerator is 2^29/ln 2
+    t[i] = x >> 24;
+  }
+}
+
+// llog(x) accepts 32 bits
+inline int llog(UI x) {
+  if (x >= 0x1000000)
+    return 256 + ilog(x >> 16);
+  else if (x >= 0x10000)
+    return 128 + ilog(x >> 8);
+  else
+    return ilog(x);
+}
+
+
 
 int main(int argc, char** argv) {
     /*
