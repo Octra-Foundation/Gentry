@@ -46,9 +46,15 @@ SOFTWARE.
 
 #include "lambda.cpp" //pls use GMP (https://gmplib.org/)
 
+
+
+// 8, 16, 32 bit unsigned types (adjust as appropriate)
+
+
 typedef unsigned char  UC;
 typedef unsigned short US;
 typedef unsigned int   UI;
+
 using namespace std;
 
 template <class Template> void alloc(Template*& next_block, int block) {
@@ -213,6 +219,35 @@ void Encoder::alignment() {
         putc(vector_y >> 24, __data);
     }
 }
+
+
+
+//////////////////////////// Random Generator ///////////////////////////////
+
+// 32bit p-random number generator
+
+class Random {
+  Array<UI> table;
+  int i;
+    
+public:
+  Random(): table(64) {
+    table[0] = 123456789;
+    table[1] = 987654321;
+      
+    for(int j=  0; j < 62; j++) 
+        table[j + 2] = table[j + 1] * 11 + table[j] * 23 / 16;
+    i = 0;
+  }
+    
+  UI operator()() {
+    return ++i, table[i&63] = table[i - 24&63] ^ table[i - 55&63];
+  }
+    
+} random;
+
+
+//////////////////////////// End ///////////////////////////////
 
 int main(int argc, char** argv) {
     /*
