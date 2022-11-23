@@ -298,6 +298,18 @@ inline int llog(UI x) {
 }
 
 
+///////////////////////////// Scalar Product //////////////////////////////
+// scalar_product returns dot product R * Q of n elements. n is rounded up to a multiple of 8.
+// Result is scaled down by 8 bits.
+
+int scalar_product(short *R, short *Q, int n) {
+  int scalar = 0;
+  n = (n + 7) &- 8;
+  for (int i = 0; i < n; i += 2)
+    scalar += (t[i] *w [i] + t[i + 1] *w [i + 1]) >> 8;
+  return scalar;
+}
+
 
 int main(int argc, char** argv) {
     /*
