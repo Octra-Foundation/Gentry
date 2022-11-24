@@ -267,6 +267,102 @@ public:
   }
 };
 
+//////////////////////////// Array Template ////////////////////////////
+
+// Array <T, MOVE> a(n); creates n elems of T initialized to 0b.
+template <class T, int MOVE = 0> class Array {
+private:
+  int   local_size;
+  int   __res;
+  char  *memory;
+  T*    f_data; 
+  void create(int i);
+
+public:
+  explicit Array(int i = 0) {
+    create(i);
+  }
+
+  ~Array();
+
+  T& operator[](int i) {
+#ifndef NDEBUG
+    if (i < 0 || i >= local_size) quit();
+#endif
+    return f_data[i];
+  }
+
+  const T& operator[](int i) const {
+#ifndef NDEBUG
+    if (i < 0 || i >= local_size) quit();
+#endif
+    return f_data[i];
+  }
+
+  int size() const {
+    return local_size;
+  }
+
+  void resize(int i);
+
+  void pop_back() {
+    if (local_size > 0) 
+      --local_size;
+  }
+
+  void push_back(const T& x);
+private:
+  Array(const Array&);
+  Array& operator=(const Array&);
+};
+
+template<class T, int MOVE> void Array<T, MOVE>::resize(int i) {
+  if (i <= __res) {
+    local_size = i;
+    return;
+  }
+
+  char *ptr_memory = memory;
+  T *__st = f_data;
+  int complex_size = local_size;
+  create(i);
+  if (ptr_memory) {
+    if (__st) {
+      memcpy(f_data, __st, sizeof(T) * min(i, complex_size));
+    }
+    free(ptr_memory);
+  }
+}
+
+template<class T, int MOVE> void Array<T, MOVE>::create(int i) {
+  local_size = __res = i;
+  if (i <= 0) {
+    f_data = 0;
+    memory = 0;
+    return;
+  }
+
+  const int __size = MOVE + local_size * sizeof(T);
+  memory = (char*)calloc(__size, 1);
+  if (!memory) quit();
+
+  f_data = (MOVE ? (T*)(memory + MOVE - (((long)memory) & (MOVE - 1))) : (T*)memory);
+  assert((char*)f_data >= memory && (char*)f_data <= memory + MOVE);
+}
+
+template<class T, int MOVE> Array<T, MOVE>::~Array() {
+  free(memory);
+}
+
+template<class T, int MOVE> void Array<T, MOVE>::push_back(const T& x) {
+  if (local_size == __res) {
+    int complex_size = local_size;
+    resize(max(1, local_size * 2));
+    local_size = complex_size;
+  }
+  f_data[local_size++] = x;
+}
+
 //////////////////////////// Random Generator ///////////////////////////////
 // 32bit p-random number generator
 
