@@ -241,7 +241,31 @@ void Encoder::alignment() {
     }
 }
 
+/////////////////////////// String Class /////////////////////////////
 
+// Subset of String
+// size() includes NUL.
+
+class String: public Array<char> {
+public:
+  const char* c_str() const {
+    return &(*this)[0];
+  }
+  
+  void operator = (const char* s) {
+    resize(strlen(s) + 1);
+    strcpy(&(*this)[0], s);
+  }
+  
+  void operator += (const char* s) {
+    pop_back();
+    while (*s) push_back(*s++);
+    push_back(0);
+  }
+  String(const char* s = ""): Array<char>(1) {
+    (*this) += s;
+  }
+};
 
 //////////////////////////// Random Generator ///////////////////////////////
 // 32bit p-random number generator
