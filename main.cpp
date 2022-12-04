@@ -496,3 +496,11 @@ unsigned char* BitHashMap<Bit>::operator[](unsigned int index) {
   memcpy(&elements_[index * Bit], tmp, Bit);
   return &elements_[index * Bit + 1];
 }
+
+int main() {
+    State_Machine sm;
+        for (int i = 0; i < sm.state_number; ++i) {
+            sm.update(i, i % 256);
+        }
+    return 0;
+}
