@@ -135,22 +135,24 @@ State_Machine::State_Machine(int block) : state_number(block), previous_state(0)
 }
 
 class Determinant {
-    int previous_state;
-    State_Machine directed_graph;
-    int state[256];
-public:
+  public:
     Determinant();
-    int next_block() {
+    std::uint16_t next_block() {
         return directed_graph.next_block(previous_state << 8 | state[previous_state]);
     }
 
-    void update(int rm_vector) {
+    void update(std::uint16_t rm_vector) {
         directed_graph.update(rm_vector, 90);
         int& state_numeration = state[previous_state];
-        (state_numeration += state_numeration + rm_vector) &= 255;
-        if ((previous_state += previous_state + rm_vector) >= 256)
+        state_numeration = (state_numeration + state_numeration + rm_vector) & 255;
+        if ((previous_state = previous_state + previous_state + rm_vector) >= 256)
             previous_state = 0;
     }
+
+  private:
+    int previous_state;
+    State_Machine directed_graph;
+    int state[256];
 };
 
 Determinant::Determinant() : previous_state(0), directed_graph(0x10000) {
