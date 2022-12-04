@@ -44,8 +44,6 @@ SOFTWARE.
 #include <algorithm>
 #include <emmintrin.h>
 
-#include "bit_hash_map.h"
-
 typedef unsigned char  UC;
 typedef unsigned short US;
 typedef unsigned int   UI;
