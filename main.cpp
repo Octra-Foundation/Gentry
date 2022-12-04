@@ -83,6 +83,8 @@ int equals(const char* string_a, const char* string_b) {
 #define GENERAL_TABLE_VALUE(x) (32768 / (x + x + 3))
 #define BLOCK_VALUE(x) ((x & 1) * 2 + (x & 2) + (x >> 2 & 1) + (x >> 3 & 1) + (x >> 4 & 1) + (x >> 5 & 1) + (x >> 6 & 1) + (x >> 7 & 1) + 3)
 
+
+
 class State_Machine {
 public:
     State_Machine(int block);
@@ -122,6 +124,12 @@ State_Machine::State_Machine(int block) : state_number(block), previous_state(0)
         int block = BLOCK_VALUE(i);
         state_count[i] = block << 28 | 6;
     }
+}
+
+State_Machine::State_Machine(int block) {
+  state_number = block;
+  alloc(state_count, block);
+  memset(state_count, 0, block * sizeof(int));
 }
 
 #undef GENERAL_TABLE_VALUE
