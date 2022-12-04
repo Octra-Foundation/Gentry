@@ -62,27 +62,6 @@ using namespace std;
 
 
 
-
-// Error handler: print message if any, and exit
-void quit(const char* message = 0) {
-  throw message;
-}
-
-// strings are equal ignoring case?
-int equals(const char* string_a, const char* string_b) {
-  assert(string_a && string_b);
-  while (*string_a && *string_b) {
-    int context_x =* string_a;
-    if (context_x >= 'A' && context_x <= 'Z') context_x += 'a' - 'A';
-    int context_y =* string_b;
-    if (context_y >= 'A' && context_y <= 'Z') context_y += 'a' - 'A';
-    if (context_x != context_y) return 0;
-    ++string_a;
-    ++string_b;
-  }
-  return *string_a ==* string_b;
-}
-
 template <class Template> void alloc(Template*& next_block, int block) {
     next_block = (Template*)calloc(block, sizeof(Template));
     if (!next_block) {
@@ -94,6 +73,25 @@ std::ifstream::pos_type filesize(const char* f_input) {
     std::ifstream in(f_input, std::ifstream::ate | std::ifstream::binary);
     return in.tellg();
 }
+
+
+// Error handler: print message if any, and exit
+void quit(const char* message = 0) {
+  throw message;
+}
+
+// strings are equal ignoring case?
+int equals(const char* string_a, const char* string_b) {
+  assert(string_a && string_b);
+  while (*string_a && *string_b) {
+    if (std::tolower(*string_a) != std::tolower(*string_b)) return 0;
+    ++string_a;
+    ++string_b;
+  }
+  return *string_a ==* string_b;
+}
+
+
 
 class State_Machine {
 protected:
