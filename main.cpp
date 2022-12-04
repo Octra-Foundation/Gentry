@@ -44,6 +44,9 @@ SOFTWARE.
 #include <algorithm>
 
 
+#include "bit_hash_map.h"
+
+
 #include "lambda.cpp" //pls use GMP (https://gmplib.org/)
 
 
@@ -386,9 +389,6 @@ public:
     
 } random;
 
-///////////////////////////// ilog //////////////////////////////
-
-// ilog(x) = round(log2(x) * 16), 0 <= x < 64K
 class Ilog {
   Array<UC> t;
 public:
