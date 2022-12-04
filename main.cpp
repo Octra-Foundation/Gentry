@@ -42,25 +42,15 @@ SOFTWARE.
 #include <math.h>
 #include <stdexcept>
 #include <algorithm>
-
+#include <emmintrin.h>
 
 #include "bit_hash_map.h"
-
-
-#include "lambda.cpp" //pls use GMP (https://gmplib.org/)
-
-
-
-// 8, 16, 32 bit unsigned types (adjust as appropriate)
-
 
 typedef unsigned char  UC;
 typedef unsigned short US;
 typedef unsigned int   UI;
 
 using namespace std;
-
-
 
 template <class Template> void alloc(Template*& next_block, int block) {
     next_block = (Template*)calloc(block, sizeof(Template));
@@ -74,13 +64,10 @@ std::ifstream::pos_type filesize(const char* f_input) {
     return in.tellg();
 }
 
-
-// Error handler: print message if any, and exit
 void quit(const char* message = 0) {
   throw message;
 }
 
-// strings are equal ignoring case?
 int equals(const char* string_a, const char* string_b) {
   assert(string_a && string_b);
   while (*string_a && *string_b) {
@@ -93,16 +80,13 @@ int equals(const char* string_a, const char* string_b) {
 
 
 
+#define GENERAL_TABLE_VALUE(x) (32768 / (x + x + 3))
+#define BLOCK_VALUE(x) ((x & 1) * 2 + (x & 2) + (x >> 2 & 1) + (x >> 3 & 1) + (x >> 4 & 1) + (x >> 5 & 1) + (x >> 6 & 1) + (x >> 7 & 1) + 3)
+
 class State_Machine {
-protected:
-    const int state_number;
-    int previous_state;
-    UI* state_count;
-    static int general_table[256];
-    
 public:
-    State_Machine(int block = 256);
-    
+    State_Machine(int block);
+
     int next_block(int state) {
         assert(state >= 0 && state < state_number);
         return state_count[previous_state = state] >> 16;
@@ -115,14 +99,6 @@ public:
             state_count[previous_state] += ((rm_vector << 18) - next_block) * general_table[block] & 0xffffff00;
         }
     }
-};
-
-#define GENERAL_TABLE_VALUE(x) (32768 / (x + x + 3))
-#define BLOCK_VALUE(x) ((x & 1) * 2 + (x & 2) + (x >> 2 & 1) + (x >> 3 & 1) + (x >> 4 & 1) + (x >> 5 & 1) + (x >> 6 & 1) + (x >> 7 & 1) + 3)
-
-class State_Machine {
-public:
-    State_Machine(int block);
 
 private:
     int state_number;
@@ -131,11 +107,10 @@ private:
     static const int general_table[256];
 };
 
-int State_Machine::general_table[256] = {
+const int State_Machine::general_table[256] = {
     GENERAL_TABLE_VALUE(0),
     GENERAL_TABLE_VALUE(1),
     GENERAL_TABLE_VALUE(2),
-    // ...
     GENERAL_TABLE_VALUE(253),
     GENERAL_TABLE_VALUE(254),
     GENERAL_TABLE_VALUE(255)
@@ -143,9 +118,7 @@ int State_Machine::general_table[256] = {
 
 State_Machine::State_Machine(int block) : state_number(block), previous_state(0) {
     alloc(state_count, state_number);
-
     for (int i = 0; i < state_number; ++i) {
-        // Calculate the block value
         int block = BLOCK_VALUE(i);
         state_count[i] = block << 28 | 6;
     }
@@ -155,8 +128,9 @@ State_Machine::State_Machine(int block) : state_number(block), previous_state(0)
 #undef BLOCK_VALUE
 
 
+
 class Determinant {
-  public:
+public:
     Determinant();
     std::uint16_t next_block() {
         return directed_graph.next_block(previous_state << 8 | state[previous_state]);
@@ -164,22 +138,21 @@ class Determinant {
 
     void update(std::uint16_t rm_vector) {
         directed_graph.update(rm_vector, 90);
-        int& state_numeration = state[previous_state];
-        state_numeration = (state_numeration + state_numeration + rm_vector) & 255;
-        if ((previous_state = previous_state + previous_state + rm_vector) >= 256)
-            previous_state = 0;
+        previous_state = (previous_state << 8 | state[previous_state]) + rm_vector;
+        state[previous_state >> 8] = previous_state & 255;
+        previous_state >>= 8;
     }
 
-  private:
-    int previous_state;
+private:
+    std::uint16_t previous_state;
     State_Machine directed_graph;
-    int state[256];
+    std::array<int, 256> state;
 };
 
-Determinant::Determinant() : previous_state(0), directed_graph(0x10000) {
-    for (int i = 0; i < 0x100; ++i)
-        state[i] = 0x66;
+Determinant::Determinant() : previous_state(0), directed_graph(0x10000), state({}) {
+    std::fill(state.begin(), state.end(), 0x66);
 }
+
 
 typedef enum { 
     ENCODE, 
@@ -217,33 +190,38 @@ inline void Encoder::encode(int rm_vector) {
     const UI next_block = determinant.next_block();
     assert(next_block <= 0xffff);
     assert(rm_vector == 0 || rm_vector == 1);
-    const UI __symmetric = vector_x + ((vector_y - vector_x) >> 16) * next_block + ((vector_y - vector_x & 0xffff) * next_block >> 16);
-    assert(__symmetric >= vector_x && __symmetric < vector_y);
+    const UI y_minus_x = vector_y - vector_x;
+    const UI symmetric = vector_x + (y_minus_x >> 16) * next_block + ((y_minus_x & 0xffff) * next_block >> 16);
+    assert(symmetric >= vector_x && symmetric < vector_y);
     if (rm_vector) {
-        vector_y = __symmetric;
+        vector_y = symmetric;
     }
-    else
-        vector_x = __symmetric + 1;
+    else {
+        vector_x = symmetric + 1;
         determinant.update(rm_vector);
         while (((vector_x ^ vector_y) & 0xff000000) == 0) {
             putc(vector_y >> 24, __data);
             vector_x <<= 8;
             vector_y = (vector_y << 8) + 255;
+        }
     }
 }
+
 
 inline int Encoder::decode() {
     const UI next_block = determinant.next_block();
     assert(next_block <= 0xffff);
-    const UI __symmetric = vector_x + ((vector_y - vector_x) >> 16) * next_block + ((vector_y - vector_x & 0xffff) * next_block >> 16);
-    assert(__symmetric >= vector_x && __symmetric < vector_y);
+    const UI y_minus_x = vector_y - vector_x;
+    const UI symmetric = vector_x + (y_minus_x >> 16) * next_block + ((y_minus_x & 0xffff) * next_block >> 16);
+    assert(symmetric >= vector_x && symmetric < vector_y);
     int rm_vector = 0;
-    if (lambda <= __symmetric) {
+    if (lambda <= symmetric) {
         rm_vector = 1;
-        vector_y = __symmetric;
+        vector_y = symmetric;
     }
-    else
-        vector_x = __symmetric + 1;
+    else {
+        vector_x = symmetric + 1;
+    }
     determinant.update(rm_vector);
 
     while (((vector_x ^ vector_y) & 0xff000000) == 0) {
@@ -256,21 +234,19 @@ inline int Encoder::decode() {
     return rm_vector;
 }
 
+
 void Encoder::alignment() {
     if (mod == ENCODE) {
-        while (((vector_x ^ vector_y) & 0xff000000) == 0) {
-            putc(vector_y >> 24, __data);
+        const UI x = vector_x;
+        const UI y = vector_y;
+        while (((x ^ y) & 0xff000000) == 0) {
+            putc(y >> 24, __data);
             vector_x <<= 8;
-            vector_y = (vector_y << 8) + 255;
+            vector_y = (y << 8) + 255;
         }
-        putc(vector_y >> 24, __data);
+        putc(y >> 24, __data);
     }
 }
-
-/////////////////////////// String Class /////////////////////////////
-
-// Subset of String
-// size() includes NUL.
 
 class String: public Array<char> {
 public:
@@ -293,9 +269,6 @@ public:
   }
 };
 
-//////////////////////////// Array Template ////////////////////////////
-
-// Array <T, MOVE> a(n); creates n elems of T initialized to 0b.
 template <class T, int MOVE = 0> class Array {
 private:
   int   local_size;
@@ -389,9 +362,6 @@ template<class T, int MOVE> void Array<T, MOVE>::push_back(const T& x) {
   f_data[local_size++] = x;
 }
 
-//////////////////////////// Random Generator ///////////////////////////////
-// 32bit p-random number generator
-
 class Random {
   Array<UI> table;
   int i;
@@ -421,7 +391,6 @@ public:
   Ilog();
 } ilog;
 
-// Lookup-tab by num integration of 1/x
 Ilog::Ilog() : t(65536) {
   uint32_t x = 14155776;
   for (int i = 2; i < 65536; ++i) {
@@ -430,24 +399,24 @@ Ilog::Ilog() : t(65536) {
   }
 }
 
-// llog(x) accepts 32 bits
 inline int llog(UI x) {
   if (x >= 0x1000000) return 256 + ilog(x >> 16);
   else if (x >= 0x10000) return 128 + ilog(x >> 8);
   else return ilog(x);
 }
 
-
-///////////////////////////// Scalar Product //////////////////////////////
-// scalar_product returns dot product R * Q of n elements. n is rounded up to a multiple of 8.
-// Result is scaled down by 8 bits.
-
 int scalar_product(short *R, short *Q, int n) {
-  int scalar = 0;
-  n = (n + 7) &- 8;
-  for (int i = 0; i < n; i += 2)
-    scalar += (t[i] *w [i] + t[i + 1] *w [i + 1]) >> 8;
-  return scalar;
+    __m128i sum = _mm_set1_epi32(0);
+    n = (n + 7) & -8;
+    for (int i = 0; i < n; i += 8) {
+        __m128i R_vec = _mm_loadu_si128((__m128i*)&R[i]);
+        __m128i Q_vec = _mm_loadu_si128((__m128i*)&Q[i]);
+        __m128i prod = _mm_mullo_epi16(R_vec, Q_vec);
+        sum = _mm_add_epi32(sum, prod);
+    }
+    
+    int result = _mm_extract_epi32(sum, 0) + _mm_extract_epi32(sum, 1) + _mm_extract_epi32(sum, 2) + _mm_extract_epi32(sum, 3);
+    return result >> 8;
 }
 
 
@@ -468,10 +437,8 @@ private:
 
 template <int Bit>
 unsigned char* BitHashMap<Bit>::operator[](unsigned int index) {
-  // Compute the check sum
   int check = (index >> 16 ^ index) & 0xffff;
   index = index * SearchLimit & size_;
-
   unsigned char* element;
   unsigned short* context;
   int j;
