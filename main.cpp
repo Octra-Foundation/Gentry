@@ -61,6 +61,8 @@ typedef unsigned int   UI;
 using namespace std;
 
 
+
+
 // Error handler: print message if any, and exit
 void quit(const char* message = 0) {
   throw message;
@@ -117,22 +119,43 @@ public:
     }
 };
 
-int State_Machine::general_table[256] = { 0 };
+#define GENERAL_TABLE_VALUE(x) (32768 / (x + x + 3))
+#define BLOCK_VALUE(x) ((x & 1) * 2 + (x & 2) + (x >> 2 & 1) + (x >> 3 & 1) + (x >> 4 & 1) + (x >> 5 & 1) + (x >> 6 & 1) + (x >> 7 & 1) + 3)
+
+class State_Machine {
+public:
+    State_Machine(int block);
+
+private:
+    int state_number;
+    int previous_state;
+    int state_count[];
+    static const int general_table[256];
+};
+
+int State_Machine::general_table[256] = {
+    GENERAL_TABLE_VALUE(0),
+    GENERAL_TABLE_VALUE(1),
+    GENERAL_TABLE_VALUE(2),
+    // ...
+    GENERAL_TABLE_VALUE(253),
+    GENERAL_TABLE_VALUE(254),
+    GENERAL_TABLE_VALUE(255)
+};
 
 State_Machine::State_Machine(int block) : state_number(block), previous_state(0) {
     alloc(state_count, state_number);
-    
+
     for (int i = 0; i < state_number; ++i) {
-        UI block = (i & 1) * 2 + (i & 2) + (i >> 2 & 1) + (i >> 3 & 1) + (i >> 4 & 1) + (i >> 5 & 1) + (i >> 6 & 1) + (i >> 7 & 1) + 3;
+        // Calculate the block value
+        int block = BLOCK_VALUE(i);
         state_count[i] = block << 28 | 6;
     }
-    
-    if (general_table[0] == 0) {
-        for (int i = 0; i < 256; ++i) {
-            general_table[i] = 32768 / (i + i + 3);
-        }
-    }
 }
+
+#undef GENERAL_TABLE_VALUE
+#undef BLOCK_VALUE
+
 
 class Determinant {
   public:
