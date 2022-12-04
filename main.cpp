@@ -424,8 +424,8 @@ public:
 } ilog;
 
 // Lookup-tab by num integration of 1/x
-Ilog::Ilog(): t(65536) {
-  UI x = 14155776;
+Ilog::Ilog() : t(65536) {
+  uint32_t x = 14155776;
   for (int i = 2; i < 65536; ++i) {
     x += 774541002 / (i * 2 - 1);  // numerator is 2^29/ln 2
     t[i] = x >> 24;
@@ -434,12 +434,9 @@ Ilog::Ilog(): t(65536) {
 
 // llog(x) accepts 32 bits
 inline int llog(UI x) {
-  if (x >= 0x1000000)
-    return 256 + ilog(x >> 16);
-  else if (x >= 0x10000)
-    return 128 + ilog(x >> 8);
-  else
-    return ilog(x);
+  if (x >= 0x1000000) return 256 + ilog(x >> 16);
+  else if (x >= 0x10000) return 128 + ilog(x >> 8);
+  else return ilog(x);
 }
 
 
@@ -456,32 +453,18 @@ int scalar_product(short *R, short *Q, int n) {
 }
 
 
-/*
-This is a template class that represents a hash map with elements of fixed size Bit bits. 
-The constant SearchLimit defines the search limit, and the constructor creates a hash map with the given size. 
-The element access operator returns a pointer to the element with the given index in the hash map.
-*/
-
 template <int Bit>
 class BitHashMap {
 public:
-  // Constant defining the search limit
   static const int SearchLimit = 8;
-
-  // Constructor
   explicit BitHashMap(int size)
       : elements_(size * Bit), size_(size - 1) {
     assert(Bit >= 2 && size > 0 && (size & (size - 1)) == 0);
   }
-
-  // Element access operator
   unsigned char* operator[](unsigned int index);
 
 private:
-  // Array of elements
   std::array<unsigned char, 64> elements_;
-
-  // Size
   unsigned int size_;
 };
 
@@ -514,22 +497,4 @@ unsigned char* BitHashMap<Bit>::operator[](unsigned int index) {
   memmove(&elements_[(index + 1) * Bit], &elements_[index * Bit], j * Bit);
   memcpy(&elements_[index * Bit], tmp, Bit);
   return &elements_[index * Bit + 1];
-}
-
-int main(int argc, char** argv) {
-    /*
-    EDT next
-    */
-    int byte;
-    if (argv[1][0] == 'c') {
-        Encoder coder(ENCODE, out);
-        while ((byte = getc(in)) != EOF) {
-           coder.encode(1);
-            for (int i = 7; i >= 0; --i)
-                coder.encode((byte >> i) & 1);
-        }
-        coder.encode(0);
-        coder.alignment();
-    }
-    return 0;
 }
