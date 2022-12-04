@@ -431,6 +431,66 @@ int scalar_product(short *R, short *Q, int n) {
 }
 
 
+/*
+This is a template class that represents a hash map with elements of fixed size Bit bits. 
+The constant SearchLimit defines the search limit, and the constructor creates a hash map with the given size. 
+The element access operator returns a pointer to the element with the given index in the hash map.
+*/
+
+template <int Bit>
+class BitHashMap {
+public:
+  // Constant defining the search limit
+  static const int SearchLimit = 8;
+
+  // Constructor
+  explicit BitHashMap(int size)
+      : elements_(size * Bit), size_(size - 1) {
+    assert(Bit >= 2 && size > 0 && (size & (size - 1)) == 0);
+  }
+
+  // Element access operator
+  unsigned char* operator[](unsigned int index);
+
+private:
+  // Array of elements
+  std::array<unsigned char, 64> elements_;
+
+  // Size
+  unsigned int size_;
+};
+
+template <int Bit>
+unsigned char* BitHashMap<Bit>::operator[](unsigned int index) {
+  // Compute the check sum
+  int check = (index >> 16 ^ index) & 0xffff;
+  index = index * SearchLimit & size_;
+
+  unsigned char* element;
+  unsigned short* context;
+  int j;
+  for (j = 0; j < SearchLimit; ++j) {
+    element = &elements_[(index + j) * Bit];
+    context = reinterpret_cast<unsigned short*>(element);
+    if (element[2] == 0) *context = check;
+    if (*context == check) break;
+  }
+  if (j == 0) return element + 1;
+  static unsigned char tmp[Bit];
+  if (j == SearchLimit) {
+    --j;
+    memset(tmp, 0, Bit);
+    *reinterpret_cast<unsigned short*>(tmp) = check;
+    if (SearchLimit > 2 && elements_[(index + j) * Bit + 2] >
+                               elements_[(index + j - 1) * Bit + 2])
+      --j;
+  } else
+    memcpy(tmp, context, Bit);
+  memmove(&elements_[(index + 1) * Bit], &elements_[index * Bit], j * Bit);
+  memcpy(&elements_[index * Bit], tmp, Bit);
+  return &elements_[index * Bit + 1];
+}
+
 int main(int argc, char** argv) {
     /*
     EDT next
