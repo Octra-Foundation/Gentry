@@ -76,8 +76,7 @@ int equals(const char* string_a, const char* string_b) {
   return *string_a ==* string_b;
 }
 
-double __d(int N, double z[], double n0[], double n1[])
-{
+double __d(int N, double z[], double n0[], double n1[]) {
     double numerator = 0.0;
     double denominator = 0.0;
     for (int i = 0; i < N; ++i) {
@@ -85,6 +84,26 @@ double __d(int N, double z[], double n0[], double n1[])
         denominator += z[i] * (n0[i] + n1[i]);
     }
     return numerator / denominator;
+}
+
+void updateZ(int N, double z[], double e[], double ny[], double n[], double wo) {
+    for (int i = 0; i < N; ++i) {
+        double numerator1 = ny[i];
+        double denominator1 = 0.0;
+        double numerator2 = n[i];
+        double denominator2 = 0.0;
+
+        for (int j = 0; j < N; ++j)
+        {
+            denominator1 += (z[j] + wo) * ny[j];
+            denominator2 += (z[j] + wo) * n[j];
+        }
+
+        double value1 = numerator1 / denominator1;
+        double value2 = numerator2 / denominator2;
+        double diff = value1 - value2;
+        z[i] += e[i] * diff;
+    }
 }
 
 
