@@ -76,6 +76,17 @@ int equals(const char* string_a, const char* string_b) {
   return *string_a ==* string_b;
 }
 
+double __d(int N, double z[], double n0[], double n1[])
+{
+    double numerator = 0.0;
+    double denominator = 0.0;
+    for (int i = 0; i < N; ++i) {
+        numerator += z[i] * n1[i];
+        denominator += z[i] * (n0[i] + n1[i]);
+    }
+    return numerator / denominator;
+}
+
 
 
 #define GENERAL_TABLE_VALUE(x) (32768 / (x + x + 3))
